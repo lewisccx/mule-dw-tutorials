@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<flow name="03-dw-functions-startFlow" doc:id="fc26378d-de1a-4bd6-aaa4-5c8d3235d0dd" >
+		<ee:transform doc:name="map, mapObject, if-else, match" doc:id="2fefe6bf-035a-4450-bb08-80ed43a22328" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/dw
+//convert all key to upper case in nested object
+fun convertKeytoUpper(obj) = 
+	if(typeOf(obj) == Object)
+		obj mapObject (v, k, i) -> {
+			(upper(k)): convertKeytoUpper(v)
+		}
+	else if(typeOf(obj) == Date)
+		obj as String {format: "MMM-dd"}
+	else if(typeOf(obj) == Number)
+		obj as Number {format: "#,###.00"}
+	else
+		obj
+
+fun convertUsingMatch(obj) = 
+	obj match {
+		case is Date -> obj as String {format: "MMM-dd"}
+		case is Number -> obj as Number {format: "#,###.00"}
+		case is String -> obj as String
+		else -> obj mapObject (v, k, i) -> {
+			(upper(k)): convertUsingMatch(v)
+			}
+	}
+
+	
+var data = payload.products.*product map {
+	product: {
+	productId: $.@productId,
+	name: $.name,
+	brandName: $.brandName,
+	originalPrice: $.originalPrice
+	
+	}
+}
+
+//using map as function
+var mapData= map((data default []), (item, index) ->{
+		product: {
+	productId: item.product.@productId,
+	name: item.product.name,
+	brandName: item.product.brandName,
+	originalPrice: item.product.originalPrice
+	
+	}
+})
+//remove array, convert to single object
+//{
+//	(products)
+//}
+---
+{
+	convertUsingMatch: convertUsingMatch(products:{(data)}),
+	convertKeytoUpper: convertKeytoUpper({(data)}),
+	convertArrayToSingleObject: {(data)}
+}
+]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="03-dw-functions-mapFilterMapObject" doc:id="47a1e66e-2f2e-47d0-ace5-f33e88065de9" >
+		<ee:transform doc:name="map, filter, mapObject" doc:id="c28ffaf9-3c3c-402a-b12a-c01287c0bf6c" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+fun getImages(images) = {
+	(images map {
+		img: $
+	})}
+	
+var data = payload.products.*product map (item, index) -> {
+	product: {
+	productId: item.@productId,
+	name: item.name,
+	brandName: item.brandName,
+	originalPrice: item.originalPrice as Number,
+	offerValidUntil: item.offer.offerValidUntil as Date,
+	(images: getImages(item.images.*image)) if item.images?
+	}
+}
+
+//reverse -
+var sortedProducts = data orderBy -$.product.originalPrice
+// minimum
+var minProduct = data minBy $.product.originalPrice
+//distinct by
+var distinctProduct= data distinctBy $.product.brandName
+//filter
+var filteredProduct = data filter $.product.brandName == "HP"
+//using filter as function
+var filtered = filter(data, (item, index) -> item.product.brandName == "HP")
+---
+{
+	sortedProducts: sortedProducts,
+	minProduct: minProduct,
+	distinctProduct: distinctProduct,
+	filteredProduct: filteredProduct,	
+}
+
+]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+</mule>

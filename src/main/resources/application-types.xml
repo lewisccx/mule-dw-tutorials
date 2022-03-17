@@ -1,0 +1,82 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<types:mule xmlns:types="http://www.mulesoft.org/schema/mule/types">
+  <types:catalog>
+    <types:type name="products" format="xml">
+      <types:example format="xml" element="{http://way2learnonline.com/domain}products" location="examples/products.xml"/>
+    </types:type>
+    <types:type name="record" format="csv">
+      <types:shape format="weave" example="examples/5000000 BT Records.csv"><![CDATA[%dw 2.0
+
+type record = Array<{|  Date: String,   Description: String,   Deposits: String,   Withdrawls: String,   Balance: String|}> {"isQuotedString": "false",
+"header": "true",
+"headerLineNumber": "0"}
+
+]]></types:shape>
+      <types:properties>
+        <types:property name="headerLineNumber" value="0"/>
+        <types:property name="header" value="true"/>
+        <types:property name="isQuotedString" value="false"/>
+      </types:properties>
+    </types:type>
+    <types:type name="record_json" format="json">
+      <types:shape format="weave" example="examples/record.json"><![CDATA[%dw 2.0
+
+type record_json = {|
+  Date: String, 
+  Description: String, 
+  Deposits: Number {"typeId": "int"}, 
+  Withdrawls: Number {"typeId": "double"}, 
+  Balance: Number {"typeId": "double"}
+|} {"example": "{\\\"Date\\\":\\\"8\\/8\\/2048\\\",\\\"Description\\\":\\\"Reversal\\\",\\\"Deposits\\\":0,\\\"Withdrawls\\\":10612.64,\\\"Balance\\\":53063.19}"}
+
+]]></types:shape>
+    </types:type>
+  </types:catalog>
+  <types:enrichment select="#b31c9c52-5703-48f8-9786-eb4883202250"/>
+  <types:enrichment select="#2fefe6bf-035a-4450-bb08-80ed43a22328">
+    <types:processor-declaration>
+      <types:input-event>
+        <types:message>
+          <types:payload type="products"/>
+        </types:message>
+      </types:input-event>
+    </types:processor-declaration>
+  </types:enrichment>
+  <types:enrichment select="#c28ffaf9-3c3c-402a-b12a-c01287c0bf6c">
+    <types:processor-declaration>
+      <types:input-event>
+        <types:message>
+          <types:payload type="products"/>
+        </types:message>
+      </types:input-event>
+    </types:processor-declaration>
+  </types:enrichment>
+  <types:enrichment select="#e7924cd9-4c5b-4d20-b39e-2ab37b504339">
+    <types:processor-declaration>
+      <types:input-event>
+        <types:message>
+          <types:payload type="record"/>
+        </types:message>
+      </types:input-event>
+      <types:output-event>
+        <types:message>
+          <types:payload type="record_json[]"/>
+        </types:message>
+      </types:output-event>
+    </types:processor-declaration>
+  </types:enrichment>
+  <types:enrichment select="#f6726c90-ce52-4d7d-bb89-586cea60f3c5">
+    <types:processor-declaration>
+      <types:input-event>
+        <types:message>
+          <types:payload type="record"/>
+        </types:message>
+      </types:input-event>
+      <types:output-event>
+        <types:message>
+          <types:payload type="record_json[]"/>
+        </types:message>
+      </types:output-event>
+    </types:processor-declaration>
+  </types:enrichment>
+</types:mule>

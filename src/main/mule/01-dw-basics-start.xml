@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="b8e328ec-6b81-4b2b-ab1a-46eb5bf2f089" >
+		<http:listener-connection host="0.0.0.0" port="8081" />
+	</http:listener-config>
+	<flow name="01-dw-basics-plus" doc:id="99a05b66-10be-4994-844c-9f1e1ce91f21" >
+		<ee:transform doc:name="++, +" doc:id="876bffe4-d8ab-4a7b-8079-b68d0b8736c5" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+var numbers = [1,2,3]
+var number = 4
+var object1 = {one: 1, two: 2}
+var object2 = {two: 2, three: 3}
+---
+{
+	plus1:  numbers + numbers + number,
+	plus2:  numbers ++ numbers,
+	plus3:  numbers + object1,
+	plus4:  object1 ++ object2
+}
+//numbers ++ object1 Error
+//object1 + object2 Error
+
+]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="01-dw-basics-minus" doc:id="38f26255-3b89-416b-9881-a0158c45e812" >
+		<ee:transform doc:name="--. -" doc:id="76260226-c676-4aaa-99a7-03648a6478b2" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+var numbers = [1,2,3]
+var number = 4
+var object1 = {one: 1, two: 2}
+var object2 = {two: 2, three: 3}
+---
+{
+	minus1: (object1 ++ object2) - "two",
+	minus2: (object1 ++ object2) -- "two": 2,
+	minus3: (object1 ++ object2) -- object1
+}
+//(object1 ++ object2) -- "two" Err
+//(object1 ++ object2) - object1 Err
+]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="01-dw-basics-zipUnzipFlatten" doc:id="52be8046-41ac-471b-851e-ac3f94f9c1d9" >
+		<ee:transform doc:name="zip, unzip, flatten" doc:id="ea76cebe-b0cb-4640-ae3a-911d4ed0c9ec" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+var arr1 = [1,2,3,4,5]
+var arr2 = ["one","two","three","four"]
+---
+{
+	zip1: arr1 zip arr2,
+	zip2: zip(arr1, arr2),
+	flatten: flatten(zip(arr1, arr2)),
+	unzip: unzip(zip(arr1, arr2))
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="01-dw-basics-jsonXml" doc:id="9982e745-5af9-4d45-88ef-76c6819d682e" >
+		<ee:transform doc:name="json, xml" doc:id="b31c9c52-5703-48f8-9786-eb4883202250" >
+			<ee:message >
+				<ee:set-payload resource="product_xml.dwl" />
+			</ee:message>
+			<ee:variables />
+		</ee:transform>
+	</flow>
+	<flow name="01-dw-basics-coreString" doc:id="7bd2a3f0-857b-4880-9fb5-48db7c4cdd58" >
+		<ee:transform doc:name="core string" doc:id="da8efda0-c928-464d-8e97-734cd808199e" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+import dw::core::Strings
+fun formatData(myinput, formatter) = formatter(myinput)
+var arr1 = [7,1,2,4,3]
+var object1 = {one: "upper", two: "lower"}
+---
+
+{
+	formatData1: formatData("LEWIS", lower),
+	formatData2: "LEWIS" formatData upper,
+	formatData3: object1 formatData (x) -> x.one ++ " " ++ x.two formatData upper,
+	formatData4: formatData(
+					formatData(object1,(x) -> x.one ++ " " ++ x.two),
+					upper
+				),
+	filter: arr1 filter $ > 2 orderBy $
+}
+
+
+]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="01-dw-basics-date-time" doc:id="ea70d44c-8b15-4f2c-a9be-ed1748906a02" >
+		<ee:transform doc:name="date, time" doc:id="b7d44224-a66c-468c-85d4-09417a1ae46b" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/xml
+//output application/json
+type dateTimeFormat = String {format:"MMM-dd"}
+ns myns http://www.timetypes/types
+---
+{
+	myns#times:{
+		LocalDateTime: now() as LocalDateTime,
+		LocalTime: now() as LocalTime,
+		Date: now() as Date,
+		Time: now() as Time,
+		DateTime: now() as DateTime,
+		CustomFormattedDateTime: now() as Date as dateTimeFormat	
+	}
+}
+]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+</mule>

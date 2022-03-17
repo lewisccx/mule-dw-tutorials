@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
+	<flow name="06-dw-usingTryFailLog-startFlow" doc:id="be90201a-1d4f-43ea-a9a2-16ea00eb960f" >
+		<http:listener doc:name="Listener" doc:id="5bbfb3ad-ff2e-408f-8f77-6b3e4efbe1bd" config-ref="HTTP_Listener_config" path="/test"/>
+		<ee:transform doc:name="usingTryFailLog" doc:id="7d3a9824-ba9e-4b51-82ae-72108bb302fb" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/dw
+import * from dw::Runtime
+
+fun getAllStatesFromFile(inputFileName: String) = do {
+	var tryResult = try(()-> readUrl("classpath://" ++ inputFileName, "application/xml"))
+	---
+    tryResult match {
+	 case payload if(payload.success ~= false) -> 
+	 	try(()-> readUrl("classpath://examples/" ++ inputFileName, "application/xml"))
+     		match {
+     			case myoutput if(myoutput.success ~= false) -> 
+     			//myoutput.error
+     				fail("There is no such file: " ++ write(payload.error) ++ write(myoutput.error))
+     			else -> $.result
+     		}
+     else -> $.result
+	}
+
+}
+
+
+fun getStateDetailsByName(name) = 
+	do
+	{
+		var statesXml = getAllStatesFromFile("states.xml")
+		---
+		statesXml.states.*state[?($.@name ~=name)].@[0]
+	}
+---
+//getAllStatesFromFile("nostates.xml")
+log("hello", getAllStatesFromFile("states.xml"))]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<error-handler >
+			<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="257dab18-61ed-466b-a500-4fa613da8f3d" >
+				<set-payload value='#["error continue: " ++ write(error)]' doc:name="Set Payload" doc:id="d97bf140-5604-4bec-b173-981b4b352468" />
+			</on-error-continue>
+		</error-handler>
+	</flow>
+</mule>

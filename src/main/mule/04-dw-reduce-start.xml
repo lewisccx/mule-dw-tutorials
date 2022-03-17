@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<flow name="04-dw-reduce-reduce" doc:id="76c9512f-ecf3-4eb8-9744-8200bd14acf5" >
+		<ee:transform doc:name="reduce" doc:id="5f25a662-0163-4585-9f19-962b2e470270" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/dw
+var nums = 1 to 5
+var nestedArray = [[1], [2,3], ["hello"]]
+var objectArray = [{one:1}, {two:2}, {three:3}]
+var stringArr = ["one", "two", "three", "four"]
+
+fun plusReducer(element, acc) = acc + element
+fun concatReducer1(element, acc) = element ++ acc
+fun concatReducer2(element, acc) = acc ++ element
+fun factorialReducer(element, acc) = element * acc
+fun flattenArrayReducer(element, acc) = acc ++ element
+fun flattenObjectReducer(element, acc={}) = acc ++ element
+---
+//acc can be number, {}, [] etc
+//take in array "nums", for each element in nums,
+//execute the function (element, acc) ->
+{
+	nestedArray: reduce(nestedArray, flattenArrayReducer),
+	objectArray: reduce(objectArray, flattenObjectReducer),
+	nums1: reduce(nums, concatReducer1),
+	nums2: reduce(nums, concatReducer2),
+	plusReducer: reduce(nums, plusReducer),
+	factorialReducer: reduce(nums, factorialReducer),
+	countStringMorethan3: stringArr reduce (element, acc=0) -> acc + (if(sizeOf(element) > 3) 1 else 0),
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="04-dw-reduce-complex" doc:id="d6463b5a-aaec-46f5-98ee-1a0b943ed7ee" >
+		<ee:transform doc:name="reduce complex" doc:id="d518983b-b546-4f0d-ba45-dff7d946e9ac" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/dw
+
+var productsXml = readUrl("classpath://examples/products.xml","application/xml")
+//Multi value selector
+var products = productsXml.products.*product
+
+fun getProductKpi(products) = 
+products reduce (product, acc= {
+								hp: {price: 0, count:0},
+								ibm: {price: 0, count:0},
+								samsung: {price: 0, count:0},
+								apple: {price: 0, count:0},
+								motorola: {price: 0, count:0},
+								}) -> 
+								product.brandName match 
+								{
+									case bName if (upper(bName) =="HP") -> acc - 'hp' ++ 'hp': {
+										price: acc[lower(bName)].price + product.originalPrice,
+										count: acc.hp.count + 1
+									}
+									case bName if (upper(bName) =="APPLE") -> acc - 'apple' ++ 'apple': {
+										price: acc[lower(bName)].price + product.originalPrice,
+										count: acc.apple.count + 1
+									}
+									case bName if (upper(bName) =="SAMSUNG") -> acc - 'samsung' ++ 'samsung': {
+										price: acc[lower(bName)].price + product.originalPrice,
+										count: acc.samsung.count + 1
+									}
+									case bName if (upper(bName) =="IBM") -> acc - 'ibm' ++ 'ibm': {
+										price: acc[lower(bName)].price + product.originalPrice,
+										count: acc.ibm.count + 1
+									}
+									case bName if (upper(bName) =="MOTOROLA") -> acc - 'motorola' ++ 'motorola': {
+										price: acc[lower(bName)].price + product.originalPrice,
+										count: acc.motorola.count + 1
+									}
+									else -> acc
+								}
+var productAvg = getProductKpi(products) mapObject (stats, productKey) -> {
+	(productKey): stats.price as Number / stats.count as Number
+	
+}
+---
+
+products map (product, index) -> product ++ {
+	avg: productAvg[lower(product.brandName)]
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+</mule>

@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<flow name="05-dw-ArrayAndObjectModulesFlow" doc:id="6433cc94-e1de-4a4b-af10-37a422d0dd08" >
+		<ee:transform doc:name="Arrays Module" doc:id="10a8e0e6-e76b-4355-ada2-854182f6fe61" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+import * from dw::core::Arrays
+
+var productsXml = readUrl("classpath://examples/products.xml","application/xml")
+var products = productsXml.products.*product
+---
+{
+	divideBy: products.originalPrice divideBy(3),
+	some: products some($.originalPrice < 5000),
+    every:  products every ($.orignalPrice as Number default 0 < 5000),
+	drop: drop(products, 2), 
+	dropWhile: products dropWhile $.brandName == 'HP',
+	firstWith:  products firstWith ((product, index) -> product.brandName == "HP"),
+	indexOf: products indexOf { "brandName": "HP" },
+	indexWhere: products indexWhere $.brandName == "HP",
+	partition: products partition isEven($.originalPrice),
+	slice:  slice (products, 1, 4),
+	splitAt: products splitAt 1,
+	splitWhere: products splitWhere (item) -> item.brandName startsWith "Apple",
+	take: products take 2,
+	takeWhile: products takeWhile $.originalPrice <= 3000
+}
+
+]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="05-dw-ArrayAndObjectModulesFlow1" doc:id="5f626a2e-0ad8-42f5-bdee-e30a4b20645c" >
+		<ee:transform doc:name="Objects Module" doc:id="a38ba187-defa-41f1-96b3-565b9a355580" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+
+import * from dw::core::Objects
+import * from dw::core::Arrays
+var productsXml = readUrl("classpath://examples/productswithns.xml","application/xml")
+var products = productsXml.products
+//https://docs.mulesoft.com/dataweave/2.4/dw-objects
+---
+{
+	nameSet: nameSet(productsXml.products),
+	entrySet: entrySet(productsXml.products),
+	keySet: keySet(productsXml.products),
+	valueSet: valueSet(productsXml.products),
+	mergeWith:  {one: 1, two: 2, three:3} mergeWith {one: "One"},
+	everyEntry: {(take(productsXml.products pluck (value, key, index) -> {
+		(key): value
+	},1)['product1'])} everyEntry (value, key) -> value == null,
+	
+	pluck: pluck(productsXml.products, (v,k,i)-> k.@)				
+}
+
+
+]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="05-dw-ArrayAndObjectModulesFlow2" doc:id="546950ff-1273-4403-bb2b-0e65830506ea" >
+		<ee:transform doc:name="join cities states" doc:id="c1684706-ec92-4d23-805a-479d8a106325" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/dw
+var citisxml= readUrl("classpath://examples/cities.xml","application/xml")
+var statesxml= readUrl("classpath://examples/states.xml","application/xml")
+
+fun getStateByName(name) = 
+  statesxml.states.*state.@[?($.name == name)][0]
+  
+var joinedCities = citisxml.cities.*city map {
+	city: $.city_name,
+	state: sortObjectByKey(getStateByName($.state_name)) -- ["dst", "population"]
+}
+// or use - "dst" - "population"
+
+
+fun sortObjectByKey(obj) = do {
+	var state = getStateByName(obj.name)
+	var keys = pluck(state, (v,k,i) -> k) orderBy $
+	var keyValueArr = keys map {
+		($): state[$]
+	} 
+	---
+	{
+	(keyValueArr)
+}
+	
+}
+---
+cities: {
+	(joinedCities)
+}
+//sortObjectByKey(getStateByName("California"))
+]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	
+</mule>

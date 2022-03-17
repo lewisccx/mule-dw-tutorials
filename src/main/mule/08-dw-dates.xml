@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<flow name="08-dw-datesFlow" doc:id="b907b277-7d64-4227-9662-6334afe75846" >
+		<ee:transform doc:name="date" doc:id="2635b77a-0555-4988-9321-3ce673697f87" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+import * from dw::core::Dates
+var date1 = |2020-10-06T18:23:20.351-03:00|
+var date2 = |2020-10-06T18:23:20.351|
+var date3 = |2020-10-06|
+var year = 2012
+var month = 10
+var day = 11
+var hour = 12 
+var minutes = 30
+var seconds = 40
+var timeZone = |-03:00|
+---
+{
+  "atBeginningOfDayDateTime": atBeginningOfDay(date1),
+  "atBeginningOfDayLocalDateTime": atBeginningOfDay(date2),
+  "atBeginningOfHourDateTime": atBeginningOfHour(date1),
+  "atBeginningOfHourLocalDateTime": atBeginningOfHour(date2),
+  "atBeginningOfMonthDateTime": atBeginningOfMonth(date1),
+  "atBeginningOfMonthLocalDateTime": atBeginningOfMonth(date2),
+   atBeginningOfWeekDateTime: atBeginningOfWeek(date1),
+   atBeginningOfWeekLocalDateTime: atBeginningOfWeek(date2),
+   atBeginningOfYearDateTime: atBeginningOfYear(date1),
+   atBeginningOfYearLocalDateTime: atBeginningOfYear(date2),
+   atBeginningOfYearDate: atBeginningOfYear(date3),
+   newDate: date({year: year, month: month, day: day}),
+   newDateTime: dateTime({year: year, month: month, day: day, hour: hour, minutes: minutes, seconds: seconds , timeZone: timeZone }),   
+   newLocalDateTime: localDateTime({year: year, month: month, day: day, hour: hour, minutes: minutes, seconds: seconds }),
+   newLocalTime: localTime({ hour: hour, minutes: minutes, seconds: seconds}),
+   newTime: time({ hour: hour, minutes: minutes, seconds: seconds,timeZone: timeZone}),
+   today: today(),
+   tomorrow: tomorrow(),
+   yesterday: yesterday(),
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+</mule>

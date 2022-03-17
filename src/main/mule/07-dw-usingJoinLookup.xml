@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
+	<configuration-properties doc:name="Configuration properties" doc:id="9d024c58-0002-4cea-bfee-23ce4863e800" file="config/dev.yaml" />
+	<flow name="getStateByName" doc:id="7aa4214e-2f8d-42f1-a92c-0b9304cde0b1" >
+		<ee:transform doc:name="Transform Message" doc:id="16f1e3c6-d34d-439e-8c9b-45785f86acec" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+var statesXml= readUrl("classpath://examples/states.xml","application/xml")
+
+fun getStateByName(name) = 
+  statesXml.states.*state.@[?($.name == name)][0]
+  
+---
+getStateByName(payload)]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="07-dw-usingJoinLookupFlow" doc:id="ae91a9e1-e248-4f95-9623-01a27c50b1a3" >
+		<http:listener doc:name="Listener" doc:id="ea642286-2bf3-46fd-87bc-fd8a281087d4" config-ref="HTTP_Listener_config" path="/lookup"/>
+		<logger level="INFO" doc:name="Logger" doc:id="b83570b6-4a13-4f06-a375-520988fe9f97" message="#[p('test.message')]"/>
+		<ee:transform doc:name="Transform Message" doc:id="e15df6e7-8e8c-493b-921d-a9a9a20bbc46" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+import * from dw::core::Objects
+var citiesXml= readUrl("classpath://examples/cities.xml","application/xml")
+
+
+  
+var cities = citiesXml.cities.*city map (mycity) ->
+	city: {
+		(mycity - "state_name"),
+	state:
+		lookup("getStateByName", mycity.state_name)
+	}
+---
+cities]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="callingJavaStaticMethodInDW" doc:id="6b045100-2edf-4b1d-b90f-53adc4566cac" >
+		<ee:transform doc:name="Transform Message" doc:id="df657b0b-bacd-4b6c-ac0a-d4917870e798" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+import java!com::mule::MyUtils
+---
+{
+	a: MyUtils::appendRandom("myString")
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+</mule>

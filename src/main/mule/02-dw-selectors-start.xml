@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<flow name="02-dw-selectors-selectors" doc:id="032f7fff-a8a0-4af6-81ac-45f226dc73aa" >
+		<ee:transform doc:name="selectors" doc:id="83af3d8e-4102-42e1-8c97-c3d30708fa10" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+
+var productsXml = readUrl("classpath://examples/products.xml","application/xml")
+var payload = {
+  "id": 1,
+  "id": 11,
+  "secondLevel": {
+    "id": 2,
+    "id": 22,
+    "thirdLevel": {
+      "id": 3,
+      "id": 33
+    }
+  }
+}
+---
+{
+	//singleSelector: productsXml.products.product,
+	//multiSelector: productsXml.products.*product,
+	//uri: productsXml.products.#.uri,
+	//prefix: productsXml.products.#.prefix,
+	//myns: productsXml.products.#,
+	//xmlAttibuteSelector: productsXml.products.*product.@productId,
+	//xmlAttributeKeyValueOPair: productsXml.products.*product.@,
+	keyValuePair: productsXml..*brandName,
+	//ampersandSelector: productsXml.&products
+	getValueFromNestedObject :payload..*id
+}
+
+]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="02-dw-selectors-localVariableInAFunction" doc:id="27e53bd0-9bf1-49ff-8df1-3ccd9db47011" >
+		<ee:transform doc:name="localVariableInAFunction" doc:id="501081f4-7a4e-4a4f-9c77-c6623c469238" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+var productsXml = readUrl("classpath://examples/products.xml","application/xml")
+
+fun getAllProductNames() = do {
+	var products = productsXml.products.*product
+	---
+	products.name
+}
+var obj = {firstName: "Lewis", "lastName": "Cao"}
+var products = productsXml.products.*product
+---
+{
+	getAllProductNames: getAllProductNames(),
+	products: {
+		ids: products.@productId,
+		(products)
+	},
+	ampersandSelector: user:obj.&firstName,
+	checkKeyExistsForAllProducts: products.name?,
+	filterProductsByName: products[?($.brandName=="HP")]
+	
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+</mule>

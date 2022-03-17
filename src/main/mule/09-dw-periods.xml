@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<flow name="09-dw-periodsFlow" doc:id="d1804cce-2a0a-42c3-ac6c-25a8f01f348e" >
+		<ee:transform doc:name="periods" doc:id="c2eaddfe-29d9-47e1-b06d-b48bf30ceb72" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+import * from dw::core::Periods
+output application/json
+var date1 = '2010-12-12'
+var date2 = '2010-12-10'
+var date3 = '2010-11-10'
+var date4 = '2011-12-11'
+var date5 = '2020-02-29'
+var date6 = '2020-03-30'
+var birthdate = "1990-01-01" as Date
+var period = between("2021-03-20" as Date, birthdate)
+---
+{
+   period: period, // "P31Y2M19D"
+   years: period.years, // 31
+   months: period.months, // 2
+   days: period.days, // 19
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+</mule>

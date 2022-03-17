@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:java="http://www.mulesoft.org/schema/mule/java" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:file="http://www.mulesoft.org/schema/mule/file"
+	xmlns:batch="http://www.mulesoft.org/schema/mule/batch" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/batch http://www.mulesoft.org/schema/mule/batch/current/mule-batch.xsd
+http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/java http://www.mulesoft.org/schema/mule/java/current/mule-java.xsd">
+	<file:config name="File_Config" doc:name="File Config" doc:id="95d5d887-43df-4ac8-af30-a2f0bb01621e" >
+		<file:connection workingDir="C:\Users\LewisCao\Documents\5000000-BT-Records" />
+	</file:config>
+	<configuration-properties doc:name="Configuration properties" doc:id="42a97130-c092-473f-a3dd-5b4d5d6b66a9" file="config\dev.yaml" />
+	<flow name="10-dw-processExcelFlow1" doc:id="626a7403-5bcd-4c15-b39c-ba998eb074b4" >
+		<http:listener doc:name="Listener" doc:id="48190006-32a7-4447-a8aa-dc87e0703c72" config-ref="HTTP_Listener_config" path="/processexcel"/>
+		<file:read doc:name="Read" doc:id="18ac88cd-9e52-4e8c-acf1-838c0605df2d" config-ref="File_Config" path="5000000 BT Records.csv">
+			<ee:repeatable-file-store-stream inMemorySize="1024" bufferUnit="MB" />
+		</file:read>
+		<ee:transform doc:name="Transform Message" doc:id="f6726c90-ce52-4d7d-bb89-586cea60f3c5">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"totolRecords": sizeOf(payload),
+	"totalBalanace:": sum(payload.Balance map (item, index) -> {
+		sum: item as Number {format: "#,##"}
+	}.sum)
+}
+//(payload map ( payload01 , indexOfPayload01 ) -> {
+//	Balance: payload01.Balance as Number {format: "#,##"}
+//}) reduce ($++$$)]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+</mule>
