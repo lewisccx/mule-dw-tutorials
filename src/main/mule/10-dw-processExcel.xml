@@ -14,23 +14,22 @@ http://www.mulesoft.org/schema/mule/java http://www.mulesoft.org/schema/mule/jav
 	<configuration-properties doc:name="Configuration properties" doc:id="42a97130-c092-473f-a3dd-5b4d5d6b66a9" file="config\dev.yaml" />
 	<flow name="10-dw-processExcelFlow1" doc:id="626a7403-5bcd-4c15-b39c-ba998eb074b4" >
 		<http:listener doc:name="Listener" doc:id="48190006-32a7-4447-a8aa-dc87e0703c72" config-ref="HTTP_Listener_config" path="/processexcel"/>
-		<file:read doc:name="Read" doc:id="18ac88cd-9e52-4e8c-acf1-838c0605df2d" config-ref="File_Config" path="5000000 BT Records.csv">
+		<file:read doc:name="Read" doc:id="18ac88cd-9e52-4e8c-acf1-838c0605df2d" config-ref="File_Config" path="5000000 BT Records.csv" targetValue="#[output application/json deferred=true --- payload]">
 			<ee:repeatable-file-store-stream inMemorySize="1024" bufferUnit="MB" />
 		</file:read>
 		<ee:transform doc:name="Transform Message" doc:id="f6726c90-ce52-4d7d-bb89-586cea60f3c5">
 			<ee:message>
 				<ee:set-payload><![CDATA[%dw 2.0
-output application/json
+output application/json deferred=true
 ---
 {
 	"totolRecords": sizeOf(payload),
 	"totalBalanace:": sum(payload.Balance map (item, index) -> {
 		sum: item as Number {format: "#,##"}
 	}.sum)
+//	"totalBalance": payload map $.Balance as Number {format: "#,###.0#"} reduce $ + $$
 }
-//(payload map ( payload01 , indexOfPayload01 ) -> {
-//	Balance: payload01.Balance as Number {format: "#,##"}
-//}) reduce ($++$$)]]></ee:set-payload>
+]]></ee:set-payload>
 			</ee:message>
 		</ee:transform>
 	</flow>
